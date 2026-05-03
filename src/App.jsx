@@ -160,10 +160,13 @@ function convertToDBServing(qty, unit, foodKey) {
 function fallbackParse(input) {
   const phrases = input.toLowerCase().split(/[,;]+/).map(s => s.trim()).filter(Boolean);
   const results = [];
+  // Sort keys longest-first so "banana bread" matches before "banana"
+  const sortedKeys = Object.keys(FOOD_DB).sort((a,b) => b.length - a.length);
   for (const phrase of phrases) {
     // Strip leading action words like "add", "log", "ate", "had", "eat"
     const cleaned = phrase.replace(/^(add|log|ate|had|eat|i ate|i had|please add)\s+/i, "").trim();
-    for (const [key, food] of Object.entries(FOOD_DB)) {
+    for (const key of sortedKeys) {
+      const food = FOOD_DB[key];
       if (cleaned.includes(key)) {
         // Find qty+unit anywhere before the food name in the cleaned phrase
         const beforeFood = cleaned.slice(0, cleaned.indexOf(key)).trim();
