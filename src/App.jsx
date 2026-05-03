@@ -112,16 +112,19 @@ function fallbackParse(input) {
   const phrases = input.toLowerCase().split(/[,;]+/).map(s => s.trim()).filter(Boolean);
   const results = [];
   for (const phrase of phrases) {
+    // Strip leading action words like "add", "log", "ate", "had", "eat"
+    const cleaned = phrase.replace(/^(add|log|ate|had|eat|i ate|i had|please add)\s+/i, "").trim();
     for (const [key, food] of Object.entries(FOOD_DB)) {
-      if (phrase.includes(key)) {
-        // Match patterns like: "3oz", "3 oz", "1.5 cups", "2tbsp", "half", "3"
-        const qtyMatch = phrase.match(/^([\d.]+\/[\d.]+|[\d.]+|half|quarter|third|a|an|one)\s*(oz|fl oz|cup|cups|tbsp|tablespoon|tsp|g|ml)?/i);
+      if (cleaned.includes(key)) {
+        // Find qty+unit anywhere before the food name in the cleaned phrase
+        const beforeFood = cleaned.slice(0, cleaned.indexOf(key)).trim();
+        const qtyMatch = beforeFood.match(/([\d.]+\/[\d.]+|[\d.]+|half|quarter|third|a|an|one)\s*(oz|fl oz|cup|cups|tbsp|tablespoon|tsp|g|ml)?$/i);
         const rawQty = qtyMatch ? parseQty(qtyMatch[1]) : 1;
         const unit = qtyMatch ? (qtyMatch[2] || "") : "";
         const qty = convertToDBServing(rawQty, unit, key);
-        const label = unit ? `${rawQty}${unit} ` : (rawQty !== 1 ? `×${rawQty} ` : "");
+        const label = unit ? `${rawQty}${unit}` : (rawQty !== 1 ? `×${rawQty}` : "");
         results.push({
-          name: label ? `${food.n.split("(")[0].trim()} (${label.trim()})` : food.n,
+          name: label ? `${food.n.split("(")[0].trim()} (${label})` : food.n,
           cal: Math.round(food.cal * qty),
           protein: Math.round(food.p * qty),
           carbs: Math.round(food.c * qty),
@@ -591,19 +594,27 @@ export default function MacroTracker() {
               <div style={{ background:"#0a1628", border:"1px solid #1e293b", borderRadius:12, overflowX:"auto", padding:"8px 0 4px" }}>
                 <TrendChart points={points} lines={lines} W={W} H={H} PL={PL} PR={PR} PT={PT} PB={PB} cW={cW} cH={cH} xOf={xOf} yOf={yOf} path={mkPath} area={mkArea} maxVal={maxVal} gridVals={gridVals} n={n} />
               </div>
-              <div style={{ marginTop:16, display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8 }}>
-                {lines.map(l=>{
-                  const vals=points.map(p=>p[l.key]);
-                  const avg=Math.round(vals.reduce((a,b)=>a+b,0)/vals.length*10)/10;
+              <div style={{ marginTop:16 }}>
+                {[
+                  { label:"3-Day Avg",  n:3  },
+                  { label:"7-Day Avg",  n:7  },
+                  { label:"30-Day Avg", n:30 },
+                ].map(({ label, n: windowN }) => {
+                  const slice = points.slice(-windowN);
+                  const avgMacro = key => slice.length
+                    ? Math.round(slice.reduce((s,p)=>s+p[key],0)/slice.length*10)/10
+                    : "—";
                   return (
-                    <div key={l.key} style={{ background:"#0a1628", border:"1px solid #1e293b", borderRadius:10, padding:"10px 12px" }}>
-                      <div style={{ fontSize:9, color:l.color, textTransform:"uppercase", letterSpacing:1, marginBottom:4 }}>{l.label}</div>
-                      <div style={{ fontSize:18, fontWeight:700, color:"#f8fafc" }}>{avg}</div>
-                      <div style={{ fontSize:9, color:"#475569" }}>avg g/kg</div>
-                      <div style={{ fontSize:9, color:"#334155", marginTop:4 }}>
-                        <span style={{color:"#22c55e"}}>↑{Math.max(...vals)}</span>  <span style={{color:"#ef4444"}}>↓{Math.min(...vals)}</span>
+                    <div key={label} style={{ background:"#0a1628", border:"1px solid #1e293b", borderRadius:10, padding:"12px 14px", marginBottom:8 }}>
+                      <div style={{ fontSize:9, color:"#475569", textTransform:"uppercase", letterSpacing:2, marginBottom:10 }}>{label}</div>
+                      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8 }}>
+                        {lines.map(l => (
+                          <div key={l.key}>
+                            <div style={{ fontSize:18, fontWeight:700, color:l.color }}>{avgMacro(l.key)}</div>
+                            <div style={{ fontSize:9, color:"#475569", textTransform:"uppercase", letterSpacing:1, marginTop:2 }}>{l.label} g/kg</div>
+                          </div>
+                        ))}
                       </div>
-                      <div style={{ fontSize:8, color:"#334155", marginTop:2 }}>target {l.tMin}–{l.tMax}</div>
                     </div>
                   );
                 })}
