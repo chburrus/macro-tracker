@@ -12,6 +12,7 @@ const HISTORICAL_ROWS = [{"date":"2026-04-02","items":[{"id":0.0,"name":"Banana,
 const FOOD_DB = {
   cutie:              {n:"Clementine/Cutie",cal:35,p:1,c:9,f:0},
   clementine:         {n:"Clementine",cal:35,p:1,c:9,f:0},
+  "banana bread":     {n:"Banana bread (1 slice)",cal:196,p:3,c:33,f:6},
   banana:             {n:"Banana (medium)",cal:105,p:1,c:27,f:0},
   apple:              {n:"Apple (medium)",cal:95,p:0,c:25,f:0},
   orange:             {n:"Orange (medium)",cal:62,p:1,c:15,f:0},
@@ -64,6 +65,15 @@ const FOOD_DB = {
   granola:            {n:"Granola (¼ cup)",cal:149,p:4,c:24,f:5},
   "protein powder":   {n:"Protein powder (1 scoop)",cal:120,p:24,c:3,f:1},
   creatine:           {n:"Creatine (5g)",cal:0,p:0,c:0,f:0},
+  "pb2 performance":  {n:"PB2 Performance (1 scoop)",cal:100,p:8,c:8,f:3},
+  pb2:                {n:"PB2 (1 scoop)",cal:100,p:8,c:8,f:3},
+  "hershey kiss":     {n:"Hershey Kiss (1)",cal:22,p:0,c:3,f:1},
+  hershey:            {n:"Hershey Kiss (1)",cal:22,p:0,c:3,f:1},
+  "tortilla chips":   {n:"Tortilla chips (1 serving)",cal:140,p:2,c:18,f:7},
+  queso:              {n:"Queso dip (2 tbsp)",cal:80,p:2,c:4,f:6},
+  "chicken taco":     {n:"Chicken taco (1, flour tortilla)",cal:220,p:15,c:22,f:7},
+  taco:               {n:"Taco (1)",cal:200,p:12,c:20,f:8},
+  "flour tortilla":   {n:"Flour tortilla (medium)",cal:146,p:4,c:25,f:3},
   bagel:              {n:"Bagel (1 medium)",cal:270,p:10,c:53,f:1},
   "english muffin":  {n:"English muffin (1)",cal:134,p:4,c:26,f:1},
   waffle:             {n:"Waffle (1)",cal:218,p:6,c:25,f:11},
@@ -145,20 +155,37 @@ function convertToDBServing(qty, unit, foodKey) {
       if (foodKey.includes(key)) return qty / dbOz;
     }
   }
+  // slice/piece — DB entries are already per slice/piece
+  if (unit === "slice" || unit === "slices" || unit === "piece" || unit === "pieces" || unit === "serving" || unit === "servings") {
+    return qty; // DB is already per slice/piece
+  }
   // tbsp
   if (unit === "tbsp" || unit === "tablespoon") {
     const tbspFoods = ["honey","maple syrup","peanut butter","olive oil","butter","nuts"];
     if (tbspFoods.some(f => foodKey.includes(f))) return qty; // DB is already per tbsp
   }
   // cups — DB is already per cup for most
-  if (unit === "cup" || unit === "cups") return qty;
+  if (unit === "cup" || unit === "cups" || unit === "") {
+    // If no unit and food is measured in cups, treat qty as cup multiplier
+    return qty;
+  }
   // g for sugar
   if (unit === "g" && foodKey.includes("sugar")) return qty / 100; // DB sugar is per 100g
   return qty; // fallback: treat as multiplier
 }
 
 function fallbackParse(input) {
-  const phrases = input.toLowerCase().split(/[,;]+/).map(s => s.trim()).filter(Boolean);
+  // Split on newlines first, then commas/semicolons — preserves compound items per line
+  const lines = input.split(/\n/).map(s => s.trim()).filter(Boolean);
+  const phrases = [];
+  for (const line of lines) {
+    // If line contains "with" or "on" it's likely compound — keep as one phrase
+    if (/\bwith\b|\bon\b/i.test(line)) {
+      phrases.push(line.toLowerCase());
+    } else {
+      line.toLowerCase().split(/[,;]+/).forEach(p => { if (p.trim()) phrases.push(p.trim()); });
+    }
+  }
   const results = [];
   // Sort keys longest-first so "banana bread" matches before "banana"
   const sortedKeys = Object.keys(FOOD_DB).sort((a,b) => b.length - a.length);
@@ -170,7 +197,8 @@ function fallbackParse(input) {
       if (cleaned.includes(key)) {
         // Find qty+unit anywhere before the food name in the cleaned phrase
         const beforeFood = cleaned.slice(0, cleaned.indexOf(key)).trim();
-        const qtyMatch = beforeFood.match(/([\d.]+\/[\d.]+|[\d.]+|half|quarter|third|a|an|one)\s*(oz|fl oz|cup|cups|tbsp|tablespoon|tsp|g|ml)?$/i);
+        // Search for qty+unit anywhere in beforeFood (handles "4.5 cups cooked", "1/2 slice", etc.)
+        const qtyMatch = beforeFood.match(/([\d.]+\/[\d.]+|[\d.]+|half|quarter|third|a|an|one)\s*(oz|fl oz|cup|cups|tbsp|tablespoon|tsp|g|ml|slice|slices|piece|pieces|serving|servings)?/i);
         const rawQty = qtyMatch ? parseQty(qtyMatch[1]) : 1;
         const unit = qtyMatch ? (qtyMatch[2] || "") : "";
         const qty = convertToDBServing(rawQty, unit, key);
@@ -230,11 +258,15 @@ async function upsertDay(date, items) {
 
 // ── AI parser ──────────────────────────────────────────────────────────────
 async function parseFoodWithAI(input) {
-  // Step 1: Try local DB first (instant, no API needed)
-  const localResult = fallbackParse(input);
-  if (localResult.length > 0) return localResult;
+  // For simple single-item inputs, try local DB first (instant)
+  const lines = input.trim().split(/\n/).filter(Boolean);
+  const isSimple = lines.length === 1 && !input.includes(" with ") && !input.includes(" on ");
+  if (isSimple) {
+    const localResult = fallbackParse(input);
+    if (localResult.length > 0) return localResult;
+  }
 
-  // Step 2: Call our Vercel API route (proxies to Claude with web search)
+  // For multi-line or compound inputs, go straight to the API
   try {
     const res = await fetch("/api/parse-food", {
       method: "POST",
@@ -246,7 +278,10 @@ async function parseFoodWithAI(input) {
     if (Array.isArray(parsed) && parsed.length > 0) return parsed;
     throw new Error("empty");
   } catch(e) {
-    throw new Error("Couldn't recognize that food — try being more specific (e.g. '3oz milk, 1 bagel')");
+    // Fall back to local DB as last resort
+    const localResult = fallbackParse(input);
+    if (localResult.length > 0) return localResult;
+    throw new Error("Couldn't recognize that food — try being more specific");
   }
 }
 
