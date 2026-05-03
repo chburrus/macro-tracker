@@ -10,28 +10,60 @@ const HISTORICAL_ROWS = [{"date":"2026-04-02","items":[{"id":0.0,"name":"Banana,
 
 // ── Nutrition fallback DB ───────────────────────────────────────────────────
 const FOOD_DB = {
-  cutie:           {n:"Clementine/Cutie",cal:35,p:1,c:9,f:0},
-  clementine:      {n:"Clementine",cal:35,p:1,c:9,f:0},
-  banana:          {n:"Banana (medium)",cal:105,p:1,c:27,f:0},
-  apple:           {n:"Apple (medium)",cal:95,p:0,c:25,f:0},
-  orange:          {n:"Orange (medium)",cal:62,p:1,c:15,f:0},
-  rice:            {n:"White rice, cooked (1 cup)",cal:206,p:4,c:45,f:0},
-  oatmeal:         {n:"Oatmeal, cooked (1 cup)",cal:150,p:5,c:27,f:3},
-  egg:             {n:"Egg, whole",cal:72,p:6,c:1,f:5},
-  chicken:         {n:"Chicken breast (4oz)",cal:185,p:35,c:0,f:4},
-  salmon:          {n:"Salmon (3oz)",cal:175,p:24,c:0,f:8},
-  yogurt:          {n:"Greek yogurt, nonfat (1 cup)",cal:100,p:17,c:6,f:0},
-  honey:           {n:"Honey (1 tbsp)",cal:64,p:0,c:17,f:0},
-  "rice cake":     {n:"Rice cake, plain",cal:35,p:1,c:7,f:0},
-  sourdough:       {n:"Sourdough bread (1 slice)",cal:120,p:4,c:23,f:1},
-  bread:           {n:"Bread (1 slice)",cal:80,p:3,c:15,f:1},
-  pasta:           {n:"Pasta, cooked (1 cup)",cal:220,p:8,c:44,f:1},
-  coke:            {n:"Coca-Cola (8 oz)",cal:96,p:0,c:26,f:0},
-  "peanut butter": {n:"Peanut butter (1 tbsp)",cal:94,p:4,c:3,f:8},
-  whey:            {n:"Whey protein (1 scoop)",cal:120,p:24,c:3,f:1},
-  kodiak:          {n:"Kodiak pancake (1)",cal:190,p:14,c:29,f:3},
-  sugar:           {n:"Sugar (100g)",cal:387,p:0,c:100,f:0},
-  nuts:            {n:"Mixed nuts (1 tbsp)",cal:50,p:1,c:2,f:4},
+  cutie:              {n:"Clementine/Cutie",cal:35,p:1,c:9,f:0},
+  clementine:         {n:"Clementine",cal:35,p:1,c:9,f:0},
+  banana:             {n:"Banana (medium)",cal:105,p:1,c:27,f:0},
+  apple:              {n:"Apple (medium)",cal:95,p:0,c:25,f:0},
+  orange:             {n:"Orange (medium)",cal:62,p:1,c:15,f:0},
+  rice:               {n:"White rice, cooked (1 cup)",cal:206,p:4,c:45,f:0},
+  oatmeal:            {n:"Oatmeal, cooked (1 cup)",cal:150,p:5,c:27,f:3},
+  egg:                {n:"Egg, whole",cal:72,p:6,c:1,f:5},
+  chicken:            {n:"Chicken breast (4oz)",cal:185,p:35,c:0,f:4},
+  salmon:             {n:"Salmon (3oz)",cal:175,p:24,c:0,f:8},
+  yogurt:             {n:"Greek yogurt, nonfat (1 cup)",cal:100,p:17,c:6,f:0},
+  honey:              {n:"Honey (1 tbsp)",cal:64,p:0,c:17,f:0},
+  "rice cake":        {n:"Rice cake, plain",cal:35,p:1,c:7,f:0},
+  sourdough:          {n:"Sourdough bread (1 slice)",cal:120,p:4,c:23,f:1},
+  bread:              {n:"Bread (1 slice)",cal:80,p:3,c:15,f:1},
+  pasta:              {n:"Pasta, cooked (1 cup)",cal:220,p:8,c:44,f:1},
+  coke:               {n:"Coca-Cola (8 oz)",cal:96,p:0,c:26,f:0},
+  "peanut butter":    {n:"Peanut butter (1 tbsp)",cal:94,p:4,c:3,f:8},
+  whey:               {n:"Whey protein (1 scoop)",cal:120,p:24,c:3,f:1},
+  kodiak:             {n:"Kodiak pancake (1)",cal:190,p:14,c:29,f:3},
+  sugar:              {n:"Sugar (100g)",cal:387,p:0,c:100,f:0},
+  nuts:               {n:"Mixed nuts (1 tbsp)",cal:50,p:1,c:2,f:4},
+  milk:               {n:"Whole milk (1 cup)",cal:149,p:8,c:12,f:8},
+  "whole milk":       {n:"Whole milk (1 cup)",cal:149,p:8,c:12,f:8},
+  "skim milk":        {n:"Skim milk (1 cup)",cal:83,p:8,c:12,f:0},
+  "almond milk":      {n:"Almond milk (1 cup)",cal:39,p:1,c:3,f:3},
+  "coconut water":    {n:"Coconut water (1 cup)",cal:46,p:0,c:11,f:0},
+  "cottage cheese":   {n:"Cottage cheese (½ cup)",cal:90,p:12,c:5,f:2},
+  steak:              {n:"Steak, cooked (4oz)",cal:220,p:30,c:0,f:11},
+  beef:               {n:"Ground beef (4oz)",cal:280,p:26,c:0,f:19},
+  tuna:               {n:"Tuna, canned (3oz)",cal:100,p:22,c:0,f:1},
+  avocado:            {n:"Avocado (half)",cal:120,p:1,c:6,f:11},
+  spinach:            {n:"Spinach, raw (1 cup)",cal:7,p:1,c:1,f:0},
+  blueberries:        {n:"Blueberries (½ cup)",cal:42,p:1,c:11,f:0},
+  strawberries:       {n:"Strawberries (1 cup)",cal:49,p:1,c:12,f:0},
+  tortilla:           {n:"Flour tortilla (medium)",cal:146,p:4,c:25,f:3},
+  pizza:              {n:"Pizza, cheese (1 slice)",cal:285,p:12,c:36,f:10},
+  burger:             {n:"Hamburger (1 patty)",cal:295,p:17,c:24,f:14},
+  fries:              {n:"French fries (medium)",cal:365,p:4,c:48,f:17},
+  "greek yogurt":     {n:"Greek yogurt, nonfat (1 cup)",cal:100,p:17,c:6,f:0},
+  "maple syrup":      {n:"Maple syrup (1 tbsp)",cal:52,p:0,c:13,f:0},
+  "olive oil":        {n:"Olive oil (1 tbsp)",cal:119,p:0,c:0,f:14},
+  butter:             {n:"Butter (1 tbsp)",cal:102,p:0,c:0,f:12},
+  cheese:             {n:"Cheese (1 oz)",cal:110,p:7,c:1,f:9},
+  turkey:             {n:"Turkey breast (3oz)",cal:135,p:26,c:0,f:3},
+  "protein bar":      {n:"Protein bar",cal:200,p:20,c:22,f:6},
+  "sweet potato":     {n:"Sweet potato (medium)",cal:103,p:2,c:24,f:0},
+  potato:             {n:"Potato (medium)",cal:161,p:4,c:37,f:0},
+  "black beans":      {n:"Black beans (½ cup)",cal:114,p:7,c:20,f:0},
+  soup:               {n:"Chicken noodle soup (1 cup)",cal:75,p:4,c:9,f:2},
+  crackers:           {n:"Crackers (1 serving)",cal:130,p:2,c:19,f:5},
+  granola:            {n:"Granola (¼ cup)",cal:149,p:4,c:24,f:5},
+  "protein powder":   {n:"Protein powder (1 scoop)",cal:120,p:24,c:3,f:1},
+  creatine:           {n:"Creatine (5g)",cal:0,p:0,c:0,f:0},
 };
 
 function parseQty(str) {
@@ -314,7 +346,7 @@ export default function MacroTracker() {
 
       {/* Tabs */}
       <div style={{ display:"flex", borderBottom:"1px solid #0f172a", padding:"0 20px" }}>
-        {["today","summary","trends","history"].map(t => (
+        {["today","trends","history"].map(t => (
           <button key={t} onClick={()=>{ setView(t); if(t==="today") setActiveDay(today); }}
             style={{ background:"none", border:"none", cursor:"pointer", padding:"10px 14px 10px 0", fontSize:11, letterSpacing:2, textTransform:"uppercase", color:view===t?"#38bdf8":"#334155", borderBottom:view===t?"2px solid #38bdf8":"2px solid transparent", transition:"all 0.15s", marginBottom:-1 }}>
             {t}
@@ -362,6 +394,39 @@ export default function MacroTracker() {
             {error && <div style={{ fontSize:11, color:error.startsWith("✅")?"#22c55e":error.startsWith("⚠️")?"#eab308":"#ef4444", marginTop:6, paddingLeft:4 }}>{error}</div>}
           </form>
 
+
+          {/* Smoothie shortcut */}
+          <button onClick={async () => {
+            const smoothieItems = [{
+              id: Date.now() + Math.random(),
+              name: "Smoothie (coco water + whey + sugar + creatine)",
+              cal: 228, protein: 24, carbs: 30, fat: 1
+            }];
+            const updated = [...dayData.items, ...smoothieItems];
+            setSaving(true);
+            try {
+              await upsertDay(activeDay, updated);
+              setDays(prev => ({ ...prev, [activeDay]: { items: updated } }));
+            } catch(e) {
+              setDays(prev => ({ ...prev, [activeDay]: { items: updated } }));
+            }
+            setSaving(false);
+          }} style={{
+            width:"100%", padding:"10px", marginBottom:16,
+            background:"#0f172a", border:"1px solid #1e293b",
+            borderRadius:10, color:"#38bdf8", cursor:"pointer",
+            fontSize:12, fontFamily:"inherit", letterSpacing:1,
+            textAlign:"left", display:"flex", alignItems:"center", gap:8,
+            transition:"border-color 0.15s"
+          }}
+          onMouseEnter={e=>e.currentTarget.style.borderColor="#38bdf8"}
+          onMouseLeave={e=>e.currentTarget.style.borderColor="#1e293b"}>
+            <span style={{fontSize:16}}>🥤</span>
+            <div>
+              <div style={{fontWeight:700}}>Smoothie</div>
+              <div style={{fontSize:10, color:"#475569", marginTop:2}}>Coco water · Whey · 16g sugar · 10g creatine · 228 cal · 24P · 30C · 1F</div>
+            </div>
+          </button>
           <div style={{ fontSize:10, color:"#334155", textTransform:"uppercase", letterSpacing:2, marginBottom:10 }}>{dayData.items.length} items</div>
           {dayData.items.length === 0
             ? <div style={{ textAlign:"center", color:"#1e293b", fontSize:13, padding:"40px 0" }}>Nothing logged yet</div>
@@ -369,7 +434,7 @@ export default function MacroTracker() {
           }
         </div>
 
-      ) : view === "summary" ? (
+      ) : view === "history" ? (
         <div style={{ padding:"16px 20px" }}>
           {(() => {
             if (!allDaysAsc.length) return <div style={{ textAlign:"center", color:"#1e293b", fontSize:13, padding:"40px 0" }}>No data yet</div>;
@@ -482,29 +547,6 @@ export default function MacroTracker() {
           })()}
         </div>
 
-      ) : (
-        <div style={{ padding:"16px 20px" }}>
-          {sortedDays.length===0
-            ? <div style={{ textAlign:"center", color:"#1e293b", fontSize:13, padding:"40px 0" }}>No history yet</div>
-            : sortedDays.map(day=>{
-                const d=days[day]; const t=computeTotals(d.items);
-                return (
-                  <button key={day} onClick={()=>{setActiveDay(day);setView("today");}}
-                    style={{ width:"100%", textAlign:"left", background:"#0a1628", border:"1px solid #1e293b", borderRadius:10, padding:"12px 14px", marginBottom:8, cursor:"pointer" }}
-                    onMouseEnter={e=>e.currentTarget.style.borderColor="#38bdf8"}
-                    onMouseLeave={e=>e.currentTarget.style.borderColor="#1e293b"}>
-                    <div style={{ fontSize:12, color:"#64748b", marginBottom:6 }}>{dateLabel(day)}</div>
-                    <div style={{ display:"flex", gap:16 }}>
-                      <span style={{ fontSize:15, fontWeight:700, color:"#f8fafc" }}>{t.cal.toLocaleString()}</span>
-                      <span style={{ fontSize:11, color:"#38bdf8" }}>{t.protein}P</span>
-                      <span style={{ fontSize:11, color:"#a78bfa" }}>{t.carbs}C</span>
-                      <span style={{ fontSize:11, color:"#fb923c" }}>{t.fat}F</span>
-                    </div>
-                  </button>
-                );
-              })
-          }
-        </div>
       )}
     </div>
   );
