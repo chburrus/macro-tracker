@@ -231,35 +231,19 @@ async function parseFoodWithAI(input) {
   const localResult = fallbackParse(input);
   if (localResult.length > 0) return localResult;
 
-  // Step 2: Try Claude API with web search tool enabled
-  const prompt = `You are a nutrition expert. The user has described food they ate.
-Look up accurate nutrition info and parse it into individual items with macros.
-User input: "${input}"
-Respond ONLY with a JSON array. No markdown, no explanation.
-Example: [{"name":"Whole milk 3oz","cal":56,"protein":3,"carbs":4,"fat":3}]
-Rules: cal/protein/carbs/fat are integers. name includes quantity. Be accurate — use real nutrition data.`;
-
+  // Step 2: Call our Vercel API route (proxies to Claude with web search)
   try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
+    const res = await fetch("/api/parse-food", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 1000,
-        tools: [{ type: "web_search_20250305", name: "web_search" }],
-        messages: [{ role: "user", content: prompt }],
-      }),
+      body: JSON.stringify({ input }),
     });
     if (!res.ok) throw new Error("API " + res.status);
-    const data = await res.json();
-    // Extract text from content blocks (may include tool_use blocks from web search)
-    const textBlock = data.content?.find(b => b.type === "text");
-    const text = textBlock?.text || "[]";
-    const parsed = JSON.parse(text.replace(/```json|```/g, "").trim());
-    if (parsed.length > 0) return parsed;
+    const parsed = await res.json();
+    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
     throw new Error("empty");
   } catch(e) {
-    throw new Error("Couldn't recognize that food — try being more specific (e.g. '3oz whole milk')");
+    throw new Error("Couldn't recognize that food — try being more specific (e.g. '3oz milk, 1 bagel')");
   }
 }
 
