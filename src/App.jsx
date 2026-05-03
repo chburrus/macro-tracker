@@ -141,11 +141,18 @@ async function upsertDay(date, items) {
 
 // ── AI parser ──────────────────────────────────────────────────────────────
 async function parseFoodWithAI(input) {
-  const prompt = `You are a nutrition expert. Parse the user's food description into individual items with accurate macros.
+  // Step 1: Try local DB first (instant, no API needed)
+  const localResult = fallbackParse(input);
+  if (localResult.length > 0) return localResult;
+
+  // Step 2: Try Claude API with web search tool enabled
+  const prompt = `You are a nutrition expert. The user has described food they ate.
+Look up accurate nutrition info and parse it into individual items with macros.
 User input: "${input}"
 Respond ONLY with a JSON array. No markdown, no explanation.
-Example: [{"name":"Oatmeal cooked 1 cup","cal":150,"protein":5,"carbs":27,"fat":3}]
-Rules: cal/protein/carbs/fat are integers. name includes quantity.`;
+Example: [{"name":"Whole milk 3oz","cal":56,"protein":3,"carbs":4,"fat":3}]
+Rules: cal/protein/carbs/fat are integers. name includes quantity. Be accurate — use real nutrition data.`;
+
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -153,19 +160,20 @@ Rules: cal/protein/carbs/fat are integers. name includes quantity.`;
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
         max_tokens: 1000,
+        tools: [{ type: "web_search_20250305", name: "web_search" }],
         messages: [{ role: "user", content: prompt }],
       }),
     });
     if (!res.ok) throw new Error("API " + res.status);
     const data = await res.json();
-    const text = data.content?.[0]?.text || "[]";
+    // Extract text from content blocks (may include tool_use blocks from web search)
+    const textBlock = data.content?.find(b => b.type === "text");
+    const text = textBlock?.text || "[]";
     const parsed = JSON.parse(text.replace(/```json|```/g, "").trim());
     if (parsed.length > 0) return parsed;
     throw new Error("empty");
   } catch(e) {
-    const fallback = fallbackParse(input);
-    if (fallback.length > 0) return fallback;
-    throw new Error("Couldn't recognize that food — try e.g. '3 cuties, 1 cup rice'");
+    throw new Error("Couldn't recognize that food — try being more specific (e.g. '3oz whole milk')");
   }
 }
 
