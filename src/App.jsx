@@ -258,15 +258,7 @@ async function upsertDay(date, items) {
 
 // ── AI parser ──────────────────────────────────────────────────────────────
 async function parseFoodWithAI(input) {
-  // For simple single-item inputs, try local DB first (instant)
-  const lines = input.trim().split(/\n/).filter(Boolean);
-  const isSimple = lines.length === 1 && !input.includes(" with ") && !input.includes(" on ");
-  if (isSimple) {
-    const localResult = fallbackParse(input);
-    if (localResult.length > 0) return localResult;
-  }
-
-  // For multi-line or compound inputs, go straight to the API
+  // Always use the API — it handles everything correctly
   try {
     const res = await fetch("/api/parse-food", {
       method: "POST",
@@ -278,10 +270,7 @@ async function parseFoodWithAI(input) {
     if (Array.isArray(parsed) && parsed.length > 0) return parsed;
     throw new Error("empty");
   } catch(e) {
-    // Fall back to local DB as last resort
-    const localResult = fallbackParse(input);
-    if (localResult.length > 0) return localResult;
-    throw new Error("Couldn't recognize that food — try being more specific");
+    throw new Error("Couldn't add that — check your internet connection and try again");
   }
 }
 
