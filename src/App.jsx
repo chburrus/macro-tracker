@@ -555,7 +555,7 @@ export default function MacroTracker() {
           })()}
         </div>
 
-      )}
+      ) : null}
     </div>
   );
 }
