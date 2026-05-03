@@ -78,16 +78,50 @@ function parseQty(str) {
   return isNaN(n) ? 1 : n;
 }
 
+// Convert a quantity+unit to a multiplier relative to the food DB serving
+function convertToDBServing(qty, unit, foodKey) {
+  // Food DB servings: milk=1 cup(8oz), rice=1 cup, chicken=4oz, salmon=3oz, etc.
+  const ozPerCup = 8;
+  unit = (unit || "").toLowerCase().trim();
+
+  // oz conversions for foods stored per cup
+  const cupFoods = ["milk","whole milk","skim milk","almond milk","coconut water","soup","yogurt","greek yogurt","oatmeal","rice","pasta"];
+  if ((unit === "oz" || unit === "fl oz") && cupFoods.some(f => foodKey.includes(f))) {
+    return qty / ozPerCup; // convert oz to fraction of 1 cup
+  }
+  // oz conversions for foods stored per oz or specific oz serving
+  const ozFoods = { chicken: 4, salmon: 3, beef: 4, steak: 4, turkey: 3, tuna: 3 };
+  if (unit === "oz") {
+    for (const [key, dbOz] of Object.entries(ozFoods)) {
+      if (foodKey.includes(key)) return qty / dbOz;
+    }
+  }
+  // tbsp
+  if (unit === "tbsp" || unit === "tablespoon") {
+    const tbspFoods = ["honey","maple syrup","peanut butter","olive oil","butter","nuts"];
+    if (tbspFoods.some(f => foodKey.includes(f))) return qty; // DB is already per tbsp
+  }
+  // cups — DB is already per cup for most
+  if (unit === "cup" || unit === "cups") return qty;
+  // g for sugar
+  if (unit === "g" && foodKey.includes("sugar")) return qty / 100; // DB sugar is per 100g
+  return qty; // fallback: treat as multiplier
+}
+
 function fallbackParse(input) {
   const phrases = input.toLowerCase().split(/[,;]+/).map(s => s.trim()).filter(Boolean);
   const results = [];
   for (const phrase of phrases) {
     for (const [key, food] of Object.entries(FOOD_DB)) {
       if (phrase.includes(key)) {
-        const qtyMatch = phrase.match(/^([\d.]+\/[\d.]+|[\d.]+|half|quarter|third|a|an|one)/i);
-        const qty = qtyMatch ? parseQty(qtyMatch[1]) : 1;
+        // Match patterns like: "3oz", "3 oz", "1.5 cups", "2tbsp", "half", "3"
+        const qtyMatch = phrase.match(/^([\d.]+\/[\d.]+|[\d.]+|half|quarter|third|a|an|one)\s*(oz|fl oz|cup|cups|tbsp|tablespoon|tsp|g|ml)?/i);
+        const rawQty = qtyMatch ? parseQty(qtyMatch[1]) : 1;
+        const unit = qtyMatch ? (qtyMatch[2] || "") : "";
+        const qty = convertToDBServing(rawQty, unit, key);
+        const label = unit ? `${rawQty}${unit} ` : (rawQty !== 1 ? `×${rawQty} ` : "");
         results.push({
-          name: qty !== 1 ? food.n.replace("(1","("+qty) : food.n,
+          name: label ? `${food.n.split("(")[0].trim()} (${label.trim()})` : food.n,
           cal: Math.round(food.cal * qty),
           protein: Math.round(food.p * qty),
           carbs: Math.round(food.c * qty),
@@ -364,12 +398,35 @@ export default function MacroTracker() {
 
       {view === "today" ? (
         <div style={{ padding:"16px 20px" }}>
-          {activeDay !== today && (
-            <div style={{ marginBottom:12, padding:"8px 12px", background:"#0f172a", borderRadius:8, fontSize:11, color:"#64748b", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-              <span>Viewing {dateLabel(activeDay)}</span>
-              <button onClick={()=>setActiveDay(today)} style={{ background:"none", border:"none", color:"#38bdf8", cursor:"pointer", fontSize:11 }}>← Today</button>
-            </div>
-          )}
+          {/* Date picker */}
+          <div style={{ marginBottom:12, display:"flex", alignItems:"center", gap:8 }}>
+            <input
+              type="date"
+              value={activeDay}
+              max={today}
+              onChange={e => {
+                const d = e.target.value;
+                if (d) {
+                  setActiveDay(d);
+                  // Initialize empty day if it doesn't exist
+                  if (!days[d]) {
+                    setDays(prev => ({ ...prev, [d]: { items: [] } }));
+                  }
+                }
+              }}
+              style={{
+                flex:1, background:"#0f172a", border:"1px solid #1e293b",
+                borderRadius:8, padding:"7px 10px", color:"#e2e8f0",
+                fontSize:12, fontFamily:"inherit", cursor:"pointer",
+              }}
+            />
+            {activeDay !== today && (
+              <button onClick={()=>setActiveDay(today)}
+                style={{ background:"none", border:"1px solid #1e293b", borderRadius:8, padding:"7px 12px", color:"#38bdf8", cursor:"pointer", fontSize:11, whiteSpace:"nowrap", fontFamily:"inherit" }}>
+                ← Today
+              </button>
+            )}
+          </div>
 
           {/* Totals card */}
           <div style={{ background:"#0a1628", border:"1px solid #1e293b", borderRadius:12, padding:16, marginBottom:16 }}>
@@ -446,7 +503,7 @@ export default function MacroTracker() {
         <div style={{ padding:"16px 20px" }}>
           {(() => {
             if (!allDaysAsc.length) return <div style={{ textAlign:"center", color:"#1e293b", fontSize:13, padding:"40px 0" }}>No data yet</div>;
-            const totalsArr = allDaysAsc.map(([iso,d]) => {
+            const totalsArr = [...allDaysAsc].reverse().map(([iso,d]) => {
               const t = computeTotals(d.items);
               return { iso, cal:t.cal, protein:t.protein, carbs:t.carbs, fat:t.fat };
             });
